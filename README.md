@@ -1,6 +1,7 @@
-Author: pavel@roamability.com
+Author: balobin.p@mail.ru
 Version 0.0.1
 Date 30.04.20
+Python 3.7.4
 
 Purpose:
 Key words spotting
