@@ -77,6 +77,7 @@ scikit-learn==0.22.2.post1
 scipy==1.4.1
 Send2Trash==1.5.0
 six==1.14.0
+SoundCard==0.3.3
 SoundFile==0.10.3.post1
 tensorboard==2.1.1
 tensorflow==2.1.0
