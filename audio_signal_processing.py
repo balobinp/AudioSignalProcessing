@@ -7,12 +7,101 @@ from tqdm.auto import tqdm
 import librosa
 import json
 import matplotlib.pyplot as plt
+from pandas import DataFrame, Series
 import numpy as np
+import pandas as pd
 from scipy.io import wavfile
 import soundcard as sc
 import python_speech_features
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
+import IPython.display as ipd
+
+
+def add_noice(sample, sr=8000, noice_vol=0.05):
+    '''Add noice by adding a random values to the original measures.
+    Inputs:
+        sample (numpy.ndarray): wav file array;
+        sr=8000 (int): incoming signal sample rate;
+        noice_vol=0.05 (float): the noice coefficient.
+    Return:
+        numpy.ndarray: reprocessed sample wav file array.
+    Usage:
+asp.sample_filtered = add_noice(sample, sr=8000, noice_vol=0.05)'''
+    min_noice = min(sample) * noice_vol
+    max_noice = max(sample) * noice_vol
+    sample_noice = np.random.uniform(min_noice, max_noice, sr)
+    return sample + sample_noice
+
+
+def remove_silence(sample, sr=8000, threshold=0.05):
+    '''Remove values less then defined threshold. Threshold is defined between 0 and 1.
+    Moving average is used to prepare the sample for analysis.
+    Inputs:
+        sample (numpy.ndarray): wav file array;
+        sr=8000 (int): incoming signal sample rate;
+        threshold=0.05 (float): threshold to remove silence.
+    Return:
+        numpy.ndarray: reprocessed sample wav file array;
+        int: samples in the reprocessed sample wav file array.
+    Usage:
+target_sr = 8000
+sample_filtered, sr_filtered = asp.remove_silence(sample, sr=target_sr, threshold=0.25)
+sample_filtered = librosa.resample(sample_filtered, orig_sr=sr_filtered, target_sr=target_sr)[:target_sr]'''
+    mask = []
+    sample_abs = pd.Series(sample).apply(np.abs)
+    sample_mean = sample_abs.rolling(window=int(sr/10), min_periods=1, center=True).mean()
+    threshold = sample_mean.max() * threshold
+    for mean in sample_mean:
+        if mean > threshold:
+            mask.append(True)
+        else:
+            mask.append(False)
+    return sample[mask], sum(mask)
+
+
+def spoil_audio(sample, sr=8000, rem_coef=0.1):
+    """Spoil the wav audio file by removing measures.
+    Inputs:
+        sample (numpy.ndarray): wav file array;
+        sr=8000 (int): incoming sample rate;
+        rem_coef=0.1 (float): removing coefficient
+    Return:
+        numpy.ndarray: reprocessed sample wav file array"""
+
+    new_sample_rate = sr + sr * rem_coef
+    sample_filtered = librosa.resample(sample, orig_sr=sr, target_sr=new_sample_rate)
+
+    # Получить Series из wav numpy.ndarray
+    s1 = Series(sample_filtered)
+
+    # Выбрать случайно индексы
+    rand_ind = np.random.choice(s1.index.values, sr, replace=False)
+
+    # Выбрать из исходного Series только полученные случайные индексы
+    s1.loc[rand_ind].sort_index().values
+
+    return s1.loc[rand_ind].sort_index().values
+
+
+def two_samples_analyzer(first_sample, second_sample, sr=8000):
+    """Draw plots and show parameters for two wav audio samples.
+    Inputs:
+        first_sample (numpy.ndarray): wav file array;
+        second_sample(numpy.ndarray): wav file array;
+        sr=8000 (int): the sample rate of both samples;
+    Return: None"""
+
+    for sample in [first_sample, second_sample]:
+        print(f"""Shape: {sample.shape}""")
+        fig = plt.figure(figsize=(6, 4))
+        ax1 = fig.add_subplot(211)
+        ax1.set_title('Raw wave of the sample')
+        ax1.set_xlabel('time, sec.')
+        ax1.set_ylabel('Amplitude')
+        ax1.plot(sample)
+        plt.show()
+        display(ipd.Audio(sample, rate=sr))
 
 
 def preprocess_dataset(dataset_path, json_path, num_mfcc=13, n_fft=2048, hop_length=512, sample_length=22050):
