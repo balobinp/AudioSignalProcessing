@@ -18,7 +18,7 @@ from sklearn.model_selection import train_test_split
 import IPython.display as ipd
 
 
-def add_noice(sample, sr=8000, noice_vol=0.05):
+def add_noice(sample, nframes=8000, noice_vol=0.05):
     '''Add noice by adding a random values to the original measures.
     Inputs:
         sample (numpy.ndarray): wav file array;
@@ -30,7 +30,7 @@ def add_noice(sample, sr=8000, noice_vol=0.05):
 asp.sample_filtered = add_noice(sample, sr=8000, noice_vol=0.05)'''
     min_noice = min(sample) * noice_vol
     max_noice = max(sample) * noice_vol
-    sample_noice = np.random.uniform(min_noice, max_noice, sr)
+    sample_noice = np.random.uniform(min_noice, max_noice, nframes)
     return sample + sample_noice
 
 
@@ -104,7 +104,8 @@ def two_samples_analyzer(first_sample, second_sample, sr=8000):
         display(ipd.Audio(sample, rate=sr))
 
 
-def preprocess_dataset(dataset_path, json_path, num_mfcc=13, n_fft=2048, hop_length=512, sample_length=22050):
+def preprocess_dataset(dataset_path, json_path, num_mfcc=13, n_fft=2048, hop_length=512,
+                       sample_length=22050, sample_rate=22050):
     """Extracts MFCCs from music dataset and saves them into a json file.
     :param dataset_path (str): Path to dataset
     :param json_path (str): Path to json file used to save MFCCs
@@ -112,6 +113,7 @@ def preprocess_dataset(dataset_path, json_path, num_mfcc=13, n_fft=2048, hop_len
     :param n_fft (int): Interval we consider to apply FFT. Measured in # of samples
     :param hop_length (int): Sliding window for FFT. Measured in # of samples
     :param sample_length (int): Audio sample length
+    :param sample_rate (int): Audio sample rate
     :return:
     """
     # dictionary where we'll store mapping, labels, MFCCs and filenames
@@ -129,7 +131,7 @@ def preprocess_dataset(dataset_path, json_path, num_mfcc=13, n_fft=2048, hop_len
             for file in tqdm(filenames):
                 file_path = join(dirpath, file)
                 # load audio file and slice it to ensure length consistency among different files
-                signal, sample_rate = librosa.load(file_path)
+                signal, _ = librosa.load(file_path, sr=sample_rate)
                 # drop audio files with less than pre-decided number of samples
                 if len(signal) >= sample_length:
                     # ensure consistency of the length of the signal
